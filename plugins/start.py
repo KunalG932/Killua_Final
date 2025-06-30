@@ -1,140 +1,150 @@
 import os, asyncio, humanize
 from pyrogram import Client, filters, __version__
 from pyrogram.enums import ParseMode
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated
 from bot import Bot
-from config import ADMINS, FORCE_MSG, START_MSG, CUSTOM_CAPTION, DISABLE_CHANNEL_BUTTON, PROTECT_CONTENT, FILE_AUTO_DELETE
+from config import ADMINS, OWNER_ID, FORCE_MSG, START_MSG, CUSTOM_CAPTION, DISABLE_CHANNEL_BUTTON, PROTECT_CONTENT, FILE_AUTO_DELETE
 from helper_func import subscribed, encode, decode, get_messages
-from database.database import add_user, del_user, full_userbase, present_user, is_requested_one, is_requested_two, delete_all_one, delete_all_two
+from database.database import add_user, del_user, full_userbase, present_user, is_requested_one, is_requested_two, delete_all_one, delete_all_two, is_admin
 
-madflixofficials = FILE_AUTO_DELETE
-jishudeveloper = madflixofficials
-file_auto_delete = humanize.naturaldelta(jishudeveloper)
+class A:
+    async def __call__(self, c, m):
+        u = m.from_user.id
+        ok, _ = await is_admin(u)
+        if u == OWNER_ID or ok or u in ADMINS:
+            return True
+        await m.reply("❌ You can't use this.")
+        return False
 
+a = A()
+mad = FILE_AUTO_DELETE
+mad_h = humanize.naturaldelta(mad)
 
-
-
-@Bot.on_message(filters.command('start') & filters.private )
-async def start_command(client: Client, message: Message):
-    buttons = []
-    id = message.from_user.id
-    if not await present_user(id):
+@Bot.on_message(filters.command('start') & filters.private)
+async def st(c: Client, m: Message):
+    u = m.from_user.id
+    if not await present_user(u):
         try:
-            await add_user(id)
-        except:
-            pass
-    text = message.text
-    if len(text)>7:
-        if client.link_one is not None and message.from_user.id not in ADMINS and not await is_requested_one(message):
-            buttons.append([
-                InlineKeyboardButton(
-                    " Rᴇǫᴜᴇꜱᴛ Tᴏ Jᴏɪɴ Cʜᴀɴɴᴇʟ 1", url=client.link_one)
-            ])
-        if client.link_two is not None and message.from_user.id not in ADMINS and not await is_requested_two(message):
-            buttons.append([
-                InlineKeyboardButton(
-                    " Rᴇǫᴜᴇꜱᴛ Tᴏ Jᴏɪɴ Cʜᴀɴɴᴇʟ 2", url=client.link_two)
-            ])   
-            try:
-                buttons.append(
-                      [
-                        InlineKeyboardButton(
-                             text = 'Try Again',
-                             url = f"https://t.me/{client.username}?start={message.command[1]}"
-                        )
-                    ]
-                    )
-            except (IndexError, ValueError):
-                pass
-            await client.send_message(
-                chat_id=message.from_user.id,
-                text="**Please request Join the Following Channels to use this Bot!**",
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return
-  
-        try:
-            base64_string = text.split(" ", 1)[1]
-        except:
-            return
-        string = await decode(base64_string)
-        argument = string.split("-")
-        if len(argument) == 3:
-            try:
-                start = int(int(argument[1]) / abs(client.db_channel.id))
-                end = int(int(argument[2]) / abs(client.db_channel.id))
-            except:
-                return
-            if start <= end:
-                ids = range(start,end+1)
-            else:
-                ids = []
-                i = start
-                while True:
-                    ids.append(i)
-                    i -= 1
-                    if i < end:
-                        break
-        elif len(argument) == 2:
-            try:
-                ids = [int(int(argument[1]) / abs(client.db_channel.id))]
-            except:
-                return
-        temp_msg = await message.reply("Please Wait...")
-        try:
-            messages = await get_messages(client, ids)
-        except:
-            await message.reply_text("Something Went Wrong..!")
-            return
-        await temp_msg.delete()
-    
-        madflix_msgs = [] # List to keep track of sent messages
-
-        for msg in messages:
-
-            if bool(CUSTOM_CAPTION) & bool(msg.document):
-                caption = CUSTOM_CAPTION.format(previouscaption = "" if not msg.caption else msg.caption.html, filename = msg.document.file_name)
-            else:
-                caption = "" if not msg.caption else msg.caption.html
-
-            if DISABLE_CHANNEL_BUTTON:
-                reply_markup = msg.reply_markup
-            else:
-                reply_markup = None
-
-            try:
-                madflix_msg = await msg.copy(chat_id=message.from_user.id, caption = caption, parse_mode = ParseMode.HTML, reply_markup = reply_markup, protect_content=PROTECT_CONTENT)
-                # await asyncio.sleep(0.5)
-                madflix_msgs.append(madflix_msg)
-                
-            except FloodWait as e:
-                await asyncio.sleep(e.x)
-                madflix_msg = await msg.copy(chat_id=message.from_user.id, caption = caption, parse_mode = ParseMode.HTML, reply_markup = reply_markup, protect_content=PROTECT_CONTENT)
-                madflix_msgs.append(madflix_msg)
-                
-            except:
-                pass
-
-        if FILE_AUTO_DELETE > 0:
-            k = await client.send_message(chat_id = message.from_user.id, text=f"<blockquote><b>❗️ <u>𝗜𝗠𝗣𝗢𝗥𝗧𝗔𝗡𝗧</u> ❗️</b></blockquote>\n\n<blockquote><b>Tʜɪs Fɪʟᴇ Wɪʟʟ Bᴇ Dᴇʟᴇᴛᴇᴅ Iɴ {file_auto_delete} minutes (Dᴜᴇ Tᴏ Cᴏᴘʏʀɪɢʜᴛ Issᴜᴇs)</b></blockquote>\n<blockquote><b>📌 Pʟᴇᴀsᴇ Fᴏʀᴡᴀʀᴅ Tʜɪs Fɪʟᴇ Tᴏ Sᴏᴍᴇᴡʜᴇʀᴇ Eʟsᴇ Aɴᴅ Sᴛᴀʀᴛ Dᴏᴡɴʟᴏᴀᴅɪɴɢ Tʜᴇʀᴇ.</b></blockquote>\n\n<blockquote>𝙁𝙤𝙧 𝙈𝙤𝙧𝙚 𝘼𝙣𝙞𝙢𝙚 𝘾𝙝𝙚𝙘𝙠𝙤𝙪𝙩: @Anime_Harvest</blockquote>\n<blockquote>𝙁𝙤𝙧 𝙈𝙖𝙣𝙜𝙖/𝙝𝙬𝙖/𝙪𝙖 𝘾𝙝𝙚𝙘𝙠𝙤𝙪𝙩: @Manga_Campus</blockquote>")
-            asyncio.create_task(delete_files(madflix_msgs, client, k))
-        
-        # for madflix_msg in madflix_msgs: 
-            # try:
-                # await madflix_msg.delete()
-                # await k.edit_text("Your Video / File Is Successfully Deleted ✅") 
-            # except:    
-                # pass 
-
+            await add_user(u)
+        except Exception as e:
+            print(f"Add user err: {e}")
+    sub = await subscribed(c, m)
+    adm = u in ADMINS
+    if not sub and not adm:
+        btn = []
+        if getattr(c, 'invitelink', None):
+            btn.append([InlineKeyboardButton("Join Channel 1", url=c.invitelink)])
+        if getattr(c, 'invitelink2', None):
+            btn.append([InlineKeyboardButton("Join Channel 2", url=c.invitelink2)])
+        if len(m.command) > 1:
+            btn.append([InlineKeyboardButton('🔄 Try Again', url=f"https://t.me/{c.username}?start={m.command[1]}")])
+        await m.reply(
+            text=FORCE_MSG.format(
+                first=m.from_user.first_name,
+                last=m.from_user.last_name or '',
+                username=None if not m.from_user.username else '@' + m.from_user.username,
+                mention=m.from_user.mention,
+                id=u
+            ),
+            reply_markup=InlineKeyboardMarkup(btn),
+            quote=True,
+            parse_mode=ParseMode.MARKDOWN
+        )
         return
-    else:
-        reply_markup = InlineKeyboardMarkup(
-            [
-                [
-              InlineKeyboardButton("📺 Anime Channel", url="https://t.me/Anime_Harvest"),
-              InlineKeyboardButton("📚 Manga/hwa/us Channel", url="https://t.me/Manga_Campus")
+    t = m.text
+    btn = []
+    if len(t) > 7:
+        if not adm:
+            j1 = await is_requested_one(m)
+            j2 = await is_requested_two(m)
+            if c.link_one and not j1:
+                btn.append([InlineKeyboardButton("📢 Join Channel 1", url=c.link_one)])
+            if c.link_two and not j2:
+                btn.append([InlineKeyboardButton("📢 Join Channel 2", url=c.link_two)])
+            if btn:
+                if len(m.command) > 1:
+                    btn.append([InlineKeyboardButton('🔄 Try Again', url=f"https://t.me/{c.username}?start={m.command[1]}")])
+                await m.reply(
+                    text="**Please join the following channels to continue:**",
+                    reply_markup=InlineKeyboardMarkup(btn),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                return
+        try:
+            b64 = t.split(" ", 1)[1]
+            s = await decode(b64)
+            arg = s.split("-")
+            if len(arg) == 3:
+                try:
+                    stt = int(int(arg[1]) / abs(c.db_channel.id))
+                    end = int(int(arg[2]) / abs(c.db_channel.id))
+                    ids = list(range(stt, end + 1)) if stt <= end else list(range(stt, end - 1, -1))
+                except:
+                    return
+            elif len(arg) == 2:
+                try:
+                    ids = [int(int(arg[1]) / abs(c.db_channel.id))]
+                except:
+                    return
+            else:
+                return
+            tmp = await m.reply("Please Wait...")
+            try:
+                msgs = await get_messages(c, ids)
+            except:
+                await m.reply_text("Something Went Wrong..!")
+                return
+            await tmp.delete()
+            out = []
+            for msg in msgs:
+                if bool(CUSTOM_CAPTION) and bool(msg.document):
+                    cap = CUSTOM_CAPTION.format(
+                        previouscaption="" if not msg.caption else msg.caption.html,
+                        filename=msg.document.file_name
+                    )
+                else:
+                    cap = "" if not msg.caption else msg.caption.html
+                rm = msg.reply_markup if DISABLE_CHANNEL_BUTTON else None
+                try:
+                    mm = await msg.copy(
+                        chat_id=u,
+                        caption=cap,
+                        parse_mode=ParseMode.HTML,
+                        reply_markup=rm,
+                        protect_content=PROTECT_CONTENT
+                    )
+                    out.append(mm)
+                except FloodWait as e:
+                    await asyncio.sleep(e.x)
+                    mm = await msg.copy(
+                        chat_id=u,
+                        caption=cap,
+                        parse_mode=ParseMode.HTML,
+                        reply_markup=rm,
+                        protect_content=PROTECT_CONTENT
+                    )
+                    out.append(mm)
+                except Exception as e:
+                    print(f"Send err: {e}")
+            if FILE_AUTO_DELETE > 0 and out:
+                k = await c.send_message(
+                    chat_id=u,
+                    text=f"<blockquote><b>❗️ <u>𝗜𝗠𝗣𝗢𝗥𝗧𝗔𝗡𝗧</u> ❗️</b></blockquote>\n\n"
+                         f"<blockquote><b>Tʜɪs Fɪʟᴇ Wɪʟʟ Bᴇ Dᴇʟᴇᴛᴇᴅ Iɴ {mad_h} minutes (Dᴜᴇ Tᴏ Cᴏᴘʏʀɪɢʜᴛ Issᴜᴇs)</b></blockquote>\n"
+                         f"<blockquote><b>📌 Pʟᴇᴀsᴇ Fᴏʀᴡᴀʀᴅ Tʜɪs Fɪʟᴇ Tᴏ Sᴏᴍᴇᴡʜᴇʀᴇ Eʟsᴇ Aɴᴅ Sᴛᴀʀᴛ Dᴏᴡɴʟᴏᴀᴅɪɴɢ Tʜᴇʀᴇ.</b></blockquote>\n\n"
+                         f"<blockquote>𝙁𝙤𝙧 🤖 𝘼𝙣𝙞𝙢𝙚 𝘾𝙝𝙚𝙘𝙠𝙤𝙪𝙩: @Anime_Harvest</blockquote>\n"
+                         f"<blockquote>𝙁𝙤𝙧 📚 𝙈𝙖𝙣𝙜𝙖/𝙝𝙬𝙖/𝙪𝙖 𝘾𝙝𝙚𝙘𝙠𝙤𝙪𝙩: @Manga_Campus</blockquote>",
+                    parse_mode=ParseMode.HTML
+                )
+                asyncio.create_task(del_files(out, c, k))
+            return
+        except Exception as e:
+            print(f"File req err: {e}")
+    menu = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("📺 Anime Channel", url="https://t.me/Anime_Harvest"),
+            InlineKeyboardButton("📚 Manga/hwa/us Channel", url="https://t.me/Manga_Campus")
         ],
         [
             InlineKeyboardButton("💬 Chat GC / Request More", url="https://t.me/Manga_Campus_Chat")
@@ -144,136 +154,79 @@ async def start_command(client: Client, message: Message):
             InlineKeyboardButton("👤 Owner", url="https://t.me/Aaru_2075")
         ],
         [  
-            InlineKeyboardButton("⛩ 𝙰𝚋𝚘𝚞𝚝", callback_data="about"),
-            InlineKeyboardButton("🔐 𝙲𝚕𝚘𝚜𝚎", callback_data="close")          
+            InlineKeyboardButton("⛩ About", callback_data="about"),
+            InlineKeyboardButton("🔐 Close", callback_data="close")          
         ]
-            ]
-        )
-        await message.reply_text(
-            text = START_MSG.format(
-                first = message.from_user.first_name,
-                last = message.from_user.last_name,
-                username = None if not message.from_user.username else '@' + message.from_user.username,
-                mention = message.from_user.mention,
-                id = message.from_user.id
-            ),
-            reply_markup = reply_markup,
-            disable_web_page_preview = True,
-            quote = True
-        )
-        return
-
-    
-@Bot.on_message(filters.command('start') & filters.private)
-async def not_joined(client: Client, message: Message):
-    buttons.append([
-        InlineKeyboardButton(text="Join Channel", url=client.invitelink)
     ])
-      
-    try:
-        buttons.append([
-            InlineKeyboardButton(
-                text='Try Again',
-                url=f"https://t.me/{client.username}?start={message.command[1]}"
-            )
-        ])
-    except IndexError:
-        pass
-    # If buttons are added, prompt the user to join channels
-    if buttons:
-        await client.send_message(
-            chat_id=message.from_user.id,
-            text="**Please request to join the following channels to use this bot!**",
-            reply_markup=InlineKeyboardMarkup(buttons),
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return
+    await m.reply_text(
+        text=START_MSG.format(
+            first=m.from_user.first_name,
+            last=m.from_user.last_name or '',
+            username=None if not m.from_user.username else '@' + m.from_user.username,
+            mention=m.from_user.mention,
+            id=u
+        ),
+        reply_markup=menu,
+        disable_web_page_preview=True,
+        quote=True
+    )
+    return
 
+@Bot.on_message(filters.command('users') & filters.private & a)
+async def users(c: Bot, m: Message):
+    msg = await c.send_message(chat_id=m.chat.id, text=f"Processing...")
+    us = await full_userbase()
+    await msg.edit(f"{len(us)} Users Are Using This Bot")
 
-    
-    
-
-
-@Bot.on_message(filters.command('users') & filters.private & filters.user(ADMINS))
-async def get_users(client: Bot, message: Message):
-    msg = await client.send_message(chat_id=message.chat.id, text=f"Processing...")
-    users = await full_userbase()
-    await msg.edit(f"{len(users)} Users Are Using This Bot")
-
-
-
-@Bot.on_message(filters.private & filters.command('broadcast') & filters.user(ADMINS))
-async def send_text(client: Bot, message: Message):
-    if message.reply_to_message:
-        query = await full_userbase()
-        broadcast_msg = message.reply_to_message
-        total = 0
-        successful = 0
-        blocked = 0
-        deleted = 0
-        unsuccessful = 0
-        
-        pls_wait = await message.reply("<i>Broadcasting Message.. This will Take Some Time</i>")
-        for chat_id in query:
+@Bot.on_message(filters.private & filters.command('broadcast') & a)
+async def bc(c: Bot, m: Message):
+    if m.reply_to_message:
+        q = await full_userbase()
+        b = m.reply_to_message
+        t = s = bl = d = u = 0
+        pls = await m.reply("<i>Broadcasting Message.. This will Take Some Time</i>")
+        for i in q:
             try:
-                await broadcast_msg.copy(chat_id)
-                successful += 1
+                await b.copy(i)
+                s += 1
             except FloodWait as e:
                 await asyncio.sleep(e.x)
-                await broadcast_msg.copy(chat_id)
-                successful += 1
+                await b.copy(i)
+                s += 1
             except UserIsBlocked:
-                await del_user(chat_id)
-                blocked += 1
+                await del_user(i)
+                bl += 1
             except InputUserDeactivated:
-                await del_user(chat_id)
-                deleted += 1
+                await del_user(i)
+                d += 1
             except:
-                unsuccessful += 1
+                u += 1
                 pass
-            total += 1
-        
-        status = f"""<b><u>Broadcast Completed</u></b>
-
-<b>Total Users :</b> <code>{total}</code>
-<b>Successful :</b> <code>{successful}</code>
-<b>Blocked Users :</b> <code>{blocked}</code>
-<b>Deleted Accounts :</b> <code>{deleted}</code>
-<b>Unsuccessful :</b> <code>{unsuccessful}</code>"""
-        
-        return await pls_wait.edit(status)
-
+            t += 1
+        stat = f"""<b><u>Broadcast Completed</u></b>\n\n<b>Total Users :</b> <code>{t}</code>\n<b>Successful :</b> <code>{s}</code>\n<b>Blocked Users :</b> <code>{bl}</code>\n<b>Deleted Accounts :</b> <code>{d}</code>\n<b>Unsuccessful :</b> <code>{u}</code>"""
+        return await pls.edit(stat)
     else:
-        msg = await message.reply(f"Use This Command As A Reply To Any Telegram Message With Out Any Spaces.")
+        msg = await m.reply(f"Use This Command As A Reply To Any Telegram Message With Out Any Spaces.")
         await asyncio.sleep(8)
         await msg.delete()
 
-
-
-
-
-
-# Function to handle file deletion
-async def delete_files(messages, client, k):
-    await asyncio.sleep(FILE_AUTO_DELETE)  # Wait for the duration specified in config.py
-    for msg in messages:
+async def del_files(msgs, c, k):
+    await asyncio.sleep(FILE_AUTO_DELETE)
+    for msg in msgs:
         try:
-            await client.delete_messages(chat_id=msg.chat.id, message_ids=[msg.id])
+            await c.delete_messages(chat_id=msg.chat.id, message_ids=[msg.id])
         except Exception as e:
-            print(f"The attempt to delete the media {msg.id} was unsuccessful: {e}")
-    # await client.send_message(messages[0].chat.id, "Your Video / File Is Successfully Deleted ✅")
+            print(f"Delete fail {msg.id}: {e}")
     await k.edit_text("<blockquote>𝙁𝙤𝙧 𝙈𝙤𝙧𝙚 𝘼𝙣𝙞𝙢𝙚 𝘾𝙝𝙚𝙘𝙠𝙤𝙪𝙩: @Anime_Harvest</blockquote>\n<blockquote>𝙁𝙤𝙧 𝙈𝙖𝙣𝙜𝙖/𝙝𝙬𝙖/𝙪𝙖 𝘾𝙝𝙚𝙘𝙠𝙤𝙪𝙩: @Manga_Campus</blockquote>")
 
-
-
-@Bot.on_message(filters.command('clear_req_1') & filters.private & filters.user(ADMINS))
-async def purge_req_one(bot, message):
-    r = await message.reply("`processing...`")
+@Bot.on_message(filters.command('clear_req_1') & filters.private & a)
+async def clr1(b, m):
+    r = await m.reply("`processing...`")
     await delete_all_one()
     await r.edit("Request database 01 Cleared ✅" )
     
-@Bot.on_message(filters.command('clear_req_2') & filters.private & filters.user(ADMINS))
-async def purge_req_two(bot, message):
-    r = await message.reply("`processing...`")
+@Bot.on_message(filters.command('clear_req_2') & filters.private & a)
+async def clr2(b, m):
+    r = await m.reply("`processing...`")
     await delete_all_two()
     await r.edit("Request database 02 Cleared ✅" )

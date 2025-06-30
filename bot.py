@@ -5,7 +5,7 @@ from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
 import sys
 from datetime import datetime
-from config import API_HASH, ADMINS, API_ID, LOGGER, BOT_TOKEN, TG_BOT_WORKERS, CHANNEL_ID, PORT, FORCE_SUB_CHANNEL, REQUEST_CHANNEL_1, REQUEST_CHANNEL_2
+from config import API_HASH, ADMINS, API_ID, LOGGER, BOT_TOKEN, TG_BOT_WORKERS, CHANNEL_ID, PORT, FORCE_SUB_CHANNEL, FORCE_SUB_CHANNEL2, REQUEST_CHANNEL_1, REQUEST_CHANNEL_2
 import pyrogram.utils
 
 pyrogram.utils.MIN_CHANNEL_ID = -1009999999999
@@ -51,6 +51,7 @@ class Bot(Client):
                 self.LOGGER(__name__).info("\nBot Stopped. Join https://t.me/Manga_Campus_Chat for support")
                 sys.exit()
 
+        # Primary force-subscription channel
         if FORCE_SUB_CHANNEL:
             try:
                 link = (await self.get_chat(FORCE_SUB_CHANNEL)).invite_link
@@ -60,8 +61,22 @@ class Bot(Client):
                 self.invitelink = link
             except Exception as a:
                 self.LOGGER(__name__).warning(a)
-                self.LOGGER(__name__).warning("Bot Can't Export Invite link From Force Sub Channel!")
+                self.LOGGER(__name__).warning("Bot Can't Export Invite link from primary Force Sub Channel!")
                 self.LOGGER(__name__).warning(f"Please Double Check The FORCE_SUB_CHANNEL Value And Make Sure Bot Is Admin In Channel With Invite Users Via Link Permission, Current Force Sub Channel Value: {FORCE_SUB_CHANNEL}")
+                self.LOGGER(__name__).info("\nBot Stopped. https://t.me/Manga_Campus_Chat For Support")
+                sys.exit()
+        # Secondary force-subscription channel
+        if FORCE_SUB_CHANNEL2:
+            try:
+                link2 = (await self.get_chat(FORCE_SUB_CHANNEL2)).invite_link
+                if not link2:
+                    await self.export_chat_invite_link(FORCE_SUB_CHANNEL2)
+                    link2 = (await self.get_chat(FORCE_SUB_CHANNEL2)).invite_link
+                self.invitelink2 = link2
+            except Exception as a:
+                self.LOGGER(__name__).warning(a)
+                self.LOGGER(__name__).warning("Bot Can't Export Invite link from secondary Force Sub Channel!")
+                self.LOGGER(__name__).warning(f"Please Double Check The FORCE_SUB_CHANNEL2 Value And Make Sure Bot Is Admin In Channel With Invite Users Via Link Permission, Current Force Sub Channel Value: {FORCE_SUB_CHANNEL2}")
                 self.LOGGER(__name__).info("\nBot Stopped. https://t.me/Manga_Campus_Chat For Support")
                 sys.exit()
 
@@ -69,7 +84,7 @@ class Bot(Client):
         try:
             db_channel = await self.get_chat(CHANNEL_ID)
             self.db_channel = db_channel
-            test = await self.send_message(chat_id = db_channel.id, text = "Hey 🖐")
+            test = await self.send_message(chat_id = db_channel.id, text = "Hey ")
             await test.delete()
         except Exception as e:
             self.LOGGER(__name__).warning(e)

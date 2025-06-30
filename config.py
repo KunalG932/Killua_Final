@@ -1,11 +1,13 @@
 import os
 import logging
+from dotenv import load_dotenv
+load_dotenv()
 from logging.handlers import RotatingFileHandler
 
 
 
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
+BOT_TOKEN = os.environ.get("BOT_TOKEN") or os.environ.get("TOKEN", "")
 API_ID = int(os.environ.get("API_ID", ""))
 API_HASH = os.environ.get("API_HASH", "")
 
@@ -17,7 +19,9 @@ DB_NAME = os.environ.get("DB_NAME", "Cluster0")
 
 CHANNEL_ID = int(os.environ.get("CHANNEL_ID", "-1002521004548"))    #DB of Hellsing [Aqua] [Killua DB]
 
-FORCE_SUB_CHANNEL = int(os.environ.get("FORCE_SUB_CHANNEL", "-1002498400014"))  #Anime_Harvest
+FORCE_SUB_CHANNEL = int(os.environ.get("FORCE_SUB_CHANNEL", "-1002498400014"))  # Anime_Harvest (Primary force-subscription channel)
+# Secondary force-subscription channel (set 0 to disable)
+FORCE_SUB_CHANNEL2 = int(os.environ.get("FORCE_SUB_CHANNEL2", "0"))
 
 REQUEST_CHANNEL_1 = int(os.environ.get("REQUEST_CHANNEL_1", "-1002183861154"))   #PVT channel of Anime Harvest
 

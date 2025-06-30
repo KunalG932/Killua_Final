@@ -4,10 +4,28 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import FloodWait
 
 from bot import Bot
-from config import ADMINS, CHANNEL_ID, DISABLE_CHANNEL_BUTTON
+from config import ADMINS, CHANNEL_ID, DISABLE_CHANNEL_BUTTON, OWNER_ID
 from helper_func import encode
+from database.database import is_admin
 
-@Bot.on_message(filters.private & filters.user(ADMINS) & ~filters.command(['start','users','broadcast','batch','genlink','stats', 'totalreq', 'clear_req_1', 'clear_req_2']))
+# Admin filter
+class AdminRequired:
+    def __init__(self):
+        pass
+
+    async def __call__(self, client, message):
+        user_id = message.from_user.id
+        is_admin_user, _ = await is_admin(user_id)
+        if user_id == OWNER_ID or is_admin_user or user_id in ADMINS:
+            return True
+        else:
+            await message.reply("❌ You don't have permission to use this command.")
+            return False
+
+# Create admin_required filter instance
+admin_required = AdminRequired()
+
+@Bot.on_message(filters.private & ~filters.command(['start','users','broadcast','batch','genlink','stats', 'totalreq', 'clear_req_1', 'clear_req_2']) & admin_required)
 async def channel_post(client: Client, message: Message):
     reply_text = await message.reply_text("Please Wait...!", quote = True)
     try:

@@ -1,10 +1,14 @@
 import pymongo, os
-from config import DB_URL, DB_NAME, ADMINS
+from config import DB_URL, DB_NAME, ADMINS, OWNER_ID
 
 dbclient = pymongo.MongoClient(DB_URL)
 database = dbclient[DB_NAME]
 user_data = database['users']
+admin_data = database['admins']
 
+# Initialize admins collection with owner if it's empty
+if admin_data.count_documents({}) == 0 and OWNER_ID:
+    admin_data.insert_one({'_id': int(OWNER_ID), 'status': 'owner'})
 
 req_one = database['req_one']  
 req_two = database['req_two']
@@ -31,6 +35,31 @@ async def full_userbase():
 async def del_user(user_id: int):
     user_data.delete_one({'_id': user_id})
     return
+
+# Admin management functions
+async def is_admin(user_id: int):
+    if user_id == OWNER_ID:
+        return True, 'owner'
+    admin = admin_data.find_one({'_id': user_id})
+    return (True, admin['status']) if admin else (False, None)
+
+async def add_admin(user_id: int, status='admin'):
+    if user_id == OWNER_ID:
+        return False, 'User is the owner'
+    if (await is_admin(user_id))[0]:
+        return False, 'User is already an admin'
+    admin_data.insert_one({'_id': user_id, 'status': status})
+    return True, f'Successfully added as {status}'
+
+async def remove_admin(user_id: int):
+    if user_id == OWNER_ID:
+        return False, 'Cannot remove owner'
+    result = admin_data.delete_one({'_id': user_id})
+    return (True, 'Admin removed successfully') if result.deleted_count > 0 else (False, 'User is not an admin')
+
+async def list_admins():
+    admins = list(admin_data.find({}))
+    return [(admin['_id'], admin.get('status', 'admin')) for admin in admins]
 
 async def is_requested_one(message):
     user = await get_req_one(message.from_user.id)

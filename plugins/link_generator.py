@@ -1,12 +1,30 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from bot import Bot
-from config import ADMINS
+from config import ADMINS, OWNER_ID
 from helper_func import encode, get_message_id
+from database.database import is_admin
+
+# Admin filter
+class AdminRequired:
+    def __init__(self):
+        pass
+
+    async def __call__(self, client, message):
+        user_id = message.from_user.id
+        is_admin_user, _ = await is_admin(user_id)
+        if user_id == OWNER_ID or is_admin_user or user_id in ADMINS:
+            return True
+        else:
+            await message.reply("❌ You don't have permission to use this command.")
+            return False
+
+# Create admin_required filter instance
+admin_required = AdminRequired()
 
 
 
-@Bot.on_message(filters.private & filters.user(ADMINS) & filters.command('batch'))
+@Bot.on_message(filters.private & filters.command('batch') & admin_required)
 async def batch(client: Client, message: Message):
     while True:
         try:
@@ -42,7 +60,7 @@ async def batch(client: Client, message: Message):
 
 
 
-@Bot.on_message(filters.private & filters.user(ADMINS) & filters.command('genlink'))
+@Bot.on_message(filters.private & filters.command('genlink') & admin_required)
 async def link_generator(client: Client, message: Message):
     while True:
         try:

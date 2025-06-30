@@ -32,7 +32,12 @@
           "required": true          
       },
       "FORCE_SUB_CHANNEL": {
-        "description": "id of the channel or group, if you want enable force sub feature else put 0",
+        "description": "ID of the primary force-subscription channel (put 0 to disable)",
+        "value": "0",
+        "required": false
+      },
+      "FORCE_SUB_CHANNEL2": {
+        "description": "ID of the secondary force-subscription channel (put 0 to disable)",
         "value": "0",
         "required": false
       },
