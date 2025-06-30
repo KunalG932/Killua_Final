@@ -13,10 +13,10 @@ async def showid(client, message):
         user_id = message.chat.id
         await message.reply_text(
             f"<b>Your User ID Is :</b> <code>{user_id}</code>", 
-            quote=True
+            parse_mode=enums.ParseMode.HTML
         )
-        
-
-
-
-
+    else:
+        await message.reply_text(
+            "This command is only for private chats.",
+            parse_mode=enums.ParseMode.HTML
+        )

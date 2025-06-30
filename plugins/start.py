@@ -49,7 +49,7 @@ async def st(c: Client, m: Message):
             ),
             reply_markup=InlineKeyboardMarkup(btn),
             quote=True,
-            parse_mode=ParseMode.MARKDOWN
+            parse_mode=ParseMode.HTML
         )
         return
     t = m.text
@@ -66,9 +66,9 @@ async def st(c: Client, m: Message):
                 if len(m.command) > 1:
                     btn.append([InlineKeyboardButton('🔄 Try Again', url=f"https://t.me/{c.username}?start={m.command[1]}")])
                 await m.reply(
-                    text="**Please join the following channels to continue:**",
+                    text="<b>Please join the following channels to continue:</b>",
                     reply_markup=InlineKeyboardMarkup(btn),
-                    parse_mode=ParseMode.MARKDOWN
+                    parse_mode=ParseMode.HTML
                 )
                 return
         try:
