@@ -33,10 +33,23 @@ async def st(c: Client, m: Message):
     adm = u in ADMINS
     if not sub and not adm:
         btn = []
+        active_buttons = []
+        
+        # Add all active buttons to the list
         if getattr(c, 'invitelink', None):
-            btn.append([InlineKeyboardButton("Join Channel 1", url=c.invitelink)])
+            active_buttons.append(InlineKeyboardButton("1. Join Channel 1", url=c.invitelink))
         if getattr(c, 'invitelink2', None):
-            btn.append([InlineKeyboardButton("Join Channel 2", url=c.invitelink2)])
+            active_buttons.append(InlineKeyboardButton("2. Join Channel 2", url=c.invitelink2))
+        if getattr(c, 'link_one', None):
+            active_buttons.append(InlineKeyboardButton("3. Join Channel 3", url=c.link_one))
+        if getattr(c, 'link_two', None):
+            active_buttons.append(InlineKeyboardButton("4. Join Channel 4", url=c.link_two))
+        
+        # Arrange buttons in 2x2 grid
+        for i in range(0, len(active_buttons), 2):
+            row = active_buttons[i:i+2]
+            btn.append(row)
+            
         if len(m.command) > 1:
             btn.append([InlineKeyboardButton('🔄 Try Again', url=f"https://t.me/{c.username}?start={m.command[1]}")])
         await m.reply(
@@ -58,15 +71,30 @@ async def st(c: Client, m: Message):
         if not adm:
             j1 = await is_requested_one(m)
             j2 = await is_requested_two(m)
+            btn = []
+            # Create a list to hold all active buttons
+            active_buttons = []
+            
+            # Add buttons to the list if they should be shown
+            if getattr(c, 'invitelink', None) and not j1:
+                active_buttons.append(InlineKeyboardButton("1. Join Channel 1", url=c.invitelink))
+            if getattr(c, 'invitelink2', None) and not j2:
+                active_buttons.append(InlineKeyboardButton("2. Join Channel 2", url=c.invitelink2))
             if c.link_one and not j1:
-                btn.append([InlineKeyboardButton("📢 Join Channel 1", url=c.link_one)])
+                active_buttons.append(InlineKeyboardButton("3. Join Channel 3", url=c.link_one))
             if c.link_two and not j2:
-                btn.append([InlineKeyboardButton("📢 Join Channel 2", url=c.link_two)])
-            if btn:
-                if len(m.command) > 1:
-                    btn.append([InlineKeyboardButton('🔄 Try Again', url=f"https://t.me/{c.username}?start={m.command[1]}")])
+                active_buttons.append(InlineKeyboardButton("4. Join Channel 4", url=c.link_two))
+            
+            # Arrange buttons in 2x2 grid
+            for i in range(0, len(active_buttons), 2):
+                row = active_buttons[i:i+2]
+                btn.append(row)
+            
+            # Add full-width Try Again button if needed
+            if btn and len(m.command) > 1:
+                btn.append([InlineKeyboardButton('🔄 Try Again', url=f"https://t.me/{c.username}?start={m.command[1]}")])
                 await m.reply(
-                    text="<b>Please join the following channels to continue:</b>",
+                    text="<b>Please join all the following channels to continue:</b>",
                     reply_markup=InlineKeyboardMarkup(btn),
                     parse_mode=ParseMode.HTML
                 )
